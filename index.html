@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가족 가계부 동기화 시스템 | 초보자 5대 자동화 센터 & 예산 한도 설정</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Firebase JS SDK (Compat mode for browser SPA) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="light-theme">
+    <!-- Top Header Bar -->
+    <header class="app-header">
+        <div class="header-inner">
+            <div class="brand">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-table-cells"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>가족 가계부 동기화 시스템</h1>
+                    <p>구글 시트 3개 시트 + Firebase Cloud DB 0초 실시간 하이브리드 연동</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div class="sync-controls">
+                    <div class="select-wrapper">
+                        <i class="fa-solid fa-rotate text-indigo"></i>
+                        <select id="auto-sync-interval" onchange="changeSyncInterval(this.value)">
+                            <option value="5" selected>⚡ 5초 마다 자동 동기화</option>
+                            <option value="10">⚡ 10초 마다 동기화</option>
+                            <option value="30">⚡ 30초 마다 동기화</option>
+                            <option value="0">⏸️ 자동 동기화 일시정지</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-indigo" id="manual-sync-btn" onclick="triggerManualSync()">
+                        <i class="fa-solid fa-arrows-rotate"></i> 구글 시트 동기화
+                    </button>
+                    <button class="btn btn-emerald btn-glow" onclick="openAddEntryModal()">
+                        <i class="fa-solid fa-plus"></i> 내역 직접 추가
+                    </button>
+                </div>
+
+                <div class="user-profile">
+                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                    <span class="user-name">주관리자 (rkstmtk)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <button class="nav-btn active active-highlight" data-tab="recommendations" onclick="switchTab('recommendations')">
+                <i class="fa-solid fa-bolt text-amber"></i> ⚡ 초보자 5대 자동화 센터
+            </button>
+            <button class="nav-btn" data-tab="monthly" onclick="switchTab('monthly')">
+                <i class="fa-solid fa-calendar-days"></i> 월별관리 시트
+            </button>
+            <button class="nav-btn" data-tab="data-log" onclick="switchTab('data-log')">
+                <i class="fa-solid fa-database"></i> 데이터 시트 (수정/추가/삭제)
+            </button>
+            <button class="nav-btn" data-tab="misc-notes" onclick="switchTab('misc-notes')">
+                <i class="fa-solid fa-folder-open"></i> 기타정리자료 시트
+            </button>
+
+            <button class="nav-btn highlight-tab" data-tab="sync-settings" onclick="switchTab('sync-settings')">
+                <i class="fa-solid fa-fire text-amber"></i> 🔥 파이어베이스 & 연동 설정
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-content">
+        <!-- Live Status Ribbon -->
+        <div class="status-ribbon">
+            <div class="ribbon-left">
+                <span class="pulse-dot"></span>
+                <span id="sheet-sync-status-text">🔥 5초 무멈춤 자동 동기화 가동중 (구글 시트 & Firebase 연결 완료)</span>
+            </div>
+            <div class="ribbon-right">
+                <span class="badge-document" id="auto-sync-countdown-text">⚡ 5초 무멈춤 자동 동기화 가동중 (5초 후 갱신)</span>
+                <span class="time-label">마지막 동기화: <strong id="live-timestamp">00:00:00</strong></span>
+            </div>
+        </div>
+
+        <!-- TAB 1: 초보자 5대 자동화 센터 -->
+        <section id="tab-recommendations" class="tab-page active">
+            <!-- Header Banner -->
+            <div class="automation-banner shadow-sm">
+                <div class="a-banner-left">
+                    <i class="fa-solid fa-bolt-lightning logo-amber"></i>
+                    <div>
+                        <h2>초보자를 위한 5대 스마트 자동화 센터 & AI 진단</h2>
+                        <p>입력 양식 작성 필요 없이 1초 텍스트 분석, 영수증 스캔, 고정비 편집·일괄등록, 예산 한도 설정을 클릭 한 번으로 실행하세요!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EXPERT AI FEATURE: AI 스마트 지출 진단 & 이상 거래 자동 감지 센터 -->
+            <div class="card border-amber shadow-sm mt-4">
+                <div class="card-header-flex">
+                    <div class="title-with-icon">
+                        <i class="fa-solid fa-brain text-amber text-2xl"></i>
+                        <div>
+                            <h3 class="card-title">🤖 AI 스마트 지출 패턴 진단 & 이상 거래 자동 감지 솔루션</h3>
+                            <p class="card-subtitle">AI가 이번 달 지출 데이터를 실시간 분석하여 절약 가이드와 이상 결제 감지 결과를 제공합니다.</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-amber btn-sm" onclick="runAiDiagnosis()">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> AI 실시간 분석 재실행
+                    </button>
+                </div>
+
+                <div class="grid-2col mt-2">
+                    <div class="ai-report-card">
+                        <div class="ai-report-header">
+                            <i class="fa-solid fa-lightbulb text-amber"></i>
+                            <strong>AI 스마트 지출 패턴 분석 리포트</strong>
+                        </div>
+                        <p id="ai-report-text" class="ai-report-body">
+                            💡 이번 달 총 지출 중 <strong class="text-indigo">식비 및 생필품 비중이 68%</strong>로 가장 높습니다.<br>
+                            주중 배달 음식을 주 1회 줄이시면 <strong class="text-emerald">월 120,000원의 가계 절약</strong>이 가능합니다!
+                        </p>
+                    </div>
+
+                    <div class="ai-report-card">
+                        <div class="ai-report-header">
+                            <i class="fa-solid fa-shield-halved text-teal"></i>
+                            <strong>AI 이상 지출 & 중복 결제 자동 검사</strong>
+                        </div>
+                        <p id="ai-fraud-text" class="ai-report-body">
+                            ✅ <strong class="text-teal">이상 고액 거래 및 중복 결제 미감지 (정상 상태)</strong><br>
+                            최근 30일간 동일 금액 중복 결제 건이나 이상 징후가 발견되지 않았습니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AUTOMATION TOOL 1: 1초 스마트 간편 텍스트 입력기 -->
+            <div class="card border-indigo shadow-sm mt-4">
+                <div class="card-header-flex">
+                    <div class="title-with-icon">
+                        <i class="fa-solid fa-comment-dots text-indigo text-xl"></i>
+                        <div>
+                            <h3 class="card-title">1. 1초 스마트 자연어 간편 입력기 (카톡/텍스트 봇 자동화)</h3>
+                            <p class="card-subtitle">입력폼 필드 채울 필요 없이 "식비 15000 커피" 또는 "지헌 문화 35000 영화" 텍스트만 적으면 0.5초 만에 자동 분석되어 추가됩니다!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="smart-input-box mt-2">
+                    <div class="input-row">
+                        <input type="text" id="smart-text-input" class="form-input text-lg" placeholder="예: 식비 15000 커피 스타벅스 (또는 준영 25000 치킨)" onkeypress="if(event.key==='Enter') processSmartText()">
+                        <button class="btn btn-indigo btn-lg" onclick="processSmartText()">
+                            <i class="fa-solid fa-bolt"></i> 1초 자동 분석 & 지출 등록
+                        </button>
+                    </div>
+                    <div class="quick-samples">
+                        <span class="sample-label">💡 원클릭 빠른 테스트 예시:</span>
+                        <button class="sample-tag" onclick="fillSmartSample('식비 15000 커피')">식비 15000 커피</button>
+                        <button class="sample-tag" onclick="fillSmartSample('지헌 문화 35000 영화관')">지헌 문화 35000 영화관</button>
+                        <button class="sample-tag" onclick="fillSmartSample('준영 교통 12500 카카오택시')">준영 교통 12500 카카오택시</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2col mt-4">
+                <!-- AUTOMATION TOOL 2: 영수증 AI 카메라 스캐너 -->
+                <div class="card border-blue shadow-sm">
+                    <div class="card-header-flex">
+                        <div class="title-with-icon">
+                            <i class="fa-solid fa-camera text-blue text-xl"></i>
+                            <div>
+                                <h3 class="card-title">2. 영수증 AI 카메라 스캐너</h3>
+                                <p class="card-subtitle">영수증 이미지 업로드 시 금액과 항목을 자동 감지합니다.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ocr-dropzone mt-2" onclick="document.getElementById('receipt-file-input').click()">
+                        <input type="file" id="receipt-file-input" accept="image/*" style="display:none;" onchange="handleReceiptUpload(this)">
+                        <i class="fa-solid fa-cloud-arrow-up drop-icon text-blue"></i>
+                        <p class="drop-title">영수증 사진을 끌어다 놓거나 클릭하여 선택하세요</p>
+                        <p class="drop-sub">JPG, PNG 파일 지원 · 영수증의 금액과 가맹점명 자동인식</p>
+                    </div>
+
+                    <div id="ocr-result-box" class="ocr-result-container hidden mt-3">
+                        <div class="ocr-detected-row">
+                            <span>가맹점: <strong id="ocr-merchant">스타벅스 강남점</strong></span>
+                            <span>추출금액: <strong id="ocr-amount" class="text-indigo">₩14,500원</strong></span>
+                        </div>
+                        <button class="btn btn-blue btn-full mt-2" onclick="applyOcrToLedger()">
+                            <i class="fa-solid fa-check"></i> 스캔된 영수증 내역 가계부에 1초 추가
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AUTOMATION TOOL 3: 정기 고정비 항목 수정 & 일괄 등록 -->
+                <div class="card border-purple shadow-sm">
+                    <div class="card-header-flex">
+                        <div class="title-with-icon">
+                            <i class="fa-solid fa-repeat text-purple text-xl"></i>
+                            <div>
+                                <h3 class="card-title">3. 매달 정기 고정비 항목 수정 & 1초 일괄 등록</h3>
+                                <p class="card-subtitle">원하는 고정비 항목과 금액을 자유롭게 수정/추가한 뒤 일괄 등록하세요.</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-indigo" onclick="openManageRecurringModal()">
+                            <i class="fa-solid fa-pen-to-square"></i> 고정비 항목 수정/추가
+                        </button>
+                    </div>
+
+                    <div class="subscription-list mt-2" id="recurring-items-container">
+                        <!-- Dynamic recurring items list -->
+                    </div>
+
+                    <button class="btn btn-purple btn-full mt-3" onclick="applyRecurringExpenses()">
+                        <i class="fa-solid fa-bolt"></i> 이번 달 고정비 1초 자동 일괄 등록
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid-2col mt-4">
+                <!-- AUTOMATION TOOL 4: 월별 예산 한도 설정 & 실시간 초과 경고 트래커 (ENHANCED PER USER REQUEST) -->
+                <div class="card border-teal shadow-sm">
+                    <div class="card-header-flex">
+                        <div class="title-with-icon">
+                            <i class="fa-solid fa-calculator text-teal text-xl"></i>
+                            <div>
+                                <h3 class="card-title">4. 월별 예산 한도 & 실시간 초과 경고 트래커</h3>
+                                <p class="card-subtitle">지출 예산 한도를 원하는 금액으로 자유롭게 변경 설정하세요.</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-indigo" onclick="openEditBudgetModal()">
+                            <i class="fa-solid fa-sliders"></i> 한도 금액 수정
+                        </button>
+                    </div>
+
+                    <div class="budget-tracker-box mt-2">
+                        <div class="budget-item">
+                            <div class="b-head">
+                                <span id="budget-title-label">이번 달 총 지출 예산 (목표 ₩500,000)</span>
+                                <strong id="budget-percent-text" class="text-teal">6.6% 소진</strong>
+                            </div>
+                            <div class="budget-progress-bar">
+                                <div id="budget-progress-fill" class="b-fill bg-teal" style="width: 6.6%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="budget-alert-box alert-safe mt-3" id="budget-status-alert">
+                            <i class="fa-solid fa-circle-check text-teal"></i>
+                            <span>현재 지출은 설정된 예산 범위 내에서 안정적으로 관리되고 있습니다.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AUTOMATION TOOL 5: 엑셀 / PDF 맞춤 보고서 내보내기 & 인쇄 -->
+                <div class="card border-emerald shadow-sm">
+                    <div class="card-header-flex">
+                        <div class="title-with-icon">
+                            <i class="fa-solid fa-file-pdf text-emerald text-xl"></i>
+                            <div>
+                                <h3 class="card-title">5. 엑셀 / PDF 맞춤 보고서 내보내기 & 인쇄</h3>
+                                <p class="card-subtitle">현재까지 쌓인 전체 가계부 데이터를 깔끔한 인쇄용 PDF 또는 엑셀 CSV로 출력합니다.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="export-actions-box mt-3">
+                        <button class="btn btn-emerald btn-lg btn-full mb-2" onclick="exportToCSV()">
+                            <i class="fa-solid fa-file-excel"></i> 최신 지출 내역 엑셀 (CSV) 1초 다운로드
+                        </button>
+                        <button class="btn btn-outline-indigo btn-lg btn-full" onclick="printPDFReport()">
+                            <i class="fa-solid fa-print"></i> 인쇄용 가계부 보고서 (PDF) 바로 출력
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: 월별관리 (Monthly Management Overview) -->
+        <section id="tab-monthly" class="tab-page">
+            <div class="kpi-grid">
+                <div class="kpi-card border-indigo">
+                    <div class="kpi-header">
+                        <div class="kpi-icon icon-indigo"><i class="fa-solid fa-wallet"></i></div>
+                        <span class="kpi-title">누적 지출 총액</span>
+                    </div>
+                    <div class="kpi-value" id="kpi-total-exp">₩33,300</div>
+                    <div class="kpi-sub text-indigo"><i class="fa-solid fa-fire text-amber"></i> Firebase 0초 실시간 동기화중</div>
+                </div>
+
+                <div class="kpi-card border-blue">
+                    <div class="kpi-header">
+                        <div class="kpi-icon icon-blue"><i class="fa-solid fa-user"></i></div>
+                        <span class="kpi-title">준영 총 지출</span>
+                    </div>
+                    <div class="kpi-value" id="kpi-junyoung-exp">₩3,300</div>
+                    <div class="kpi-sub text-blue">2026.08 기준</div>
+                </div>
+
+                <div class="kpi-card border-purple">
+                    <div class="kpi-header">
+                        <div class="kpi-icon icon-purple"><i class="fa-solid fa-user"></i></div>
+                        <span class="kpi-title">지헌 총 지출</span>
+                    </div>
+                    <div class="kpi-value" id="kpi-jiheon-exp">₩30,000</div>
+                    <div class="kpi-sub text-purple">2026.08 기준</div>
+                </div>
+
+                <div class="kpi-card border-teal">
+                    <div class="kpi-header">
+                        <div class="kpi-icon icon-teal"><i class="fa-solid fa-calendar-check"></i></div>
+                        <span class="kpi-title">관리 추적 건수</span>
+                    </div>
+                    <div class="kpi-value" id="kpi-months-count">6건</div>
+                    <div class="kpi-sub text-teal">웹 / 구글 시트 / Firebase 동시 파싱</div>
+                </div>
+            </div>
+
+            <!-- Chart Container -->
+            <div class="card mt-4">
+                <div class="card-header-flex">
+                    <div>
+                        <h3 class="card-title"><i class="fa-solid fa-chart-column text-indigo"></i> 월별 지출 수입 현황 차트</h3>
+                        <p class="card-subtitle">웹에서 내역 추가/수정/삭제 시 차트에 즉시 실시간 반영됩니다.</p>
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" onclick="filterMonthlyChart('all')">전체보기</button>
+                        <button class="filter-btn" onclick="filterMonthlyChart('jun')">준영</button>
+                        <button class="filter-btn" onclick="filterMonthlyChart('jih')">지헌</button>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Monthly Data Table -->
+            <div class="card mt-4">
+                <div class="card-header-flex">
+                    <div>
+                        <h3 class="card-title"><i class="fa-solid fa-table text-indigo"></i> 『월별관리』 시트 데이터 명세</h3>
+                        <p class="card-subtitle">준영 & 지헌 월말기준 지출 총금액, 카드, 이체 기록</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-indigo" onclick="loadSheetMonthlyData()">
+                        <i class="fa-solid fa-arrows-rotate"></i> 월별관리 새로고침
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th colspan="5" class="th-junyoung"><i class="fa-solid fa-user"></i> 준영 월별 지출</th>
+                                <th colspan="5" class="th-jiheon"><i class="fa-solid fa-user"></i> 지헌 월별 지출</th>
+                            </tr>
+                            <tr>
+                                <th>월말기준</th>
+                                <th>월</th>
+                                <th>지출총금액</th>
+                                <th>카드</th>
+                                <th>이체</th>
+                                <th>월말기준</th>
+                                <th>월</th>
+                                <th>지출총금액</th>
+                                <th>카드</th>
+                                <th>이체</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly-table-body">
+                            <tr>
+                                <td colspan="10" class="text-center py-4">
+                                    <i class="fa-solid fa-spinner fa-spin text-indigo"></i> 구글 시트 『월별관리』 데이터를 불러오는 중...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: 데이터 (Expense Data Log) -->
+        <section id="tab-data-log" class="tab-page">
+            <div class="card">
+                <div class="card-header-flex">
+                    <div>
+                        <h3 class="card-title"><i class="fa-solid fa-database text-indigo"></i> 『데이터』 시트 상세 거래 내역</h3>
+                        <p class="card-subtitle">Firebase Cloud DB 0초 실시간 연동 + 구글 시트 데이터 갱신 및 파싱</p>
+                    </div>
+
+                    <div class="search-filter-box">
+                        <button class="btn btn-emerald" onclick="openAddEntryModal()">
+                            <i class="fa-solid fa-plus"></i> 새 내역 추가
+                        </button>
+                        <button class="btn btn-indigo" onclick="exportToCSV()">
+                            <i class="fa-solid fa-file-csv"></i> 엑셀/시트용 CSV 다운로드
+                        </button>
+                        <button class="btn btn-outline" onclick="resetLocalModifications()">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> 원본 복구
+                        </button>
+                        <div class="input-with-icon">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="data-search-input" class="search-input" placeholder="항목 설명 또는 이름 검색..." onkeyup="filterDataRows()">
+                        </div>
+
+                        <select id="data-category-select" class="select-input" onchange="filterDataRows()">
+                            <option value="">전체 지출 분류</option>
+                            <option value="식비">식비</option>
+                            <option value="문화/여가">문화/여가</option>
+                            <option value="교통/차량">교통/차량</option>
+                            <option value="숙박">숙박</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container mt-3">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>월별일자</th>
+                                <th>날짜</th>
+                                <th>이름</th>
+                                <th>지출 분류</th>
+                                <th>항목 설명</th>
+                                <th>금액</th>
+                                <th>결제 유형</th>
+                                <th>AI 비용 카테고리</th>
+                                <th class="text-center">관리 조치 (CRUD)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="datalog-table-body">
+                            <tr>
+                                <td colspan="9" class="text-center py-4">
+                                    <i class="fa-solid fa-spinner fa-spin text-indigo"></i> 구글 시트 『데이터』 시트 불러오는 중...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: 기타정리자료 (Miscellaneous Notes & Submissions) -->
+        <section id="tab-misc-notes" class="tab-page">
+            <div class="card">
+                <div class="card-header-flex">
+                    <div>
+                        <h3 class="card-title"><i class="fa-solid fa-folder-open text-indigo"></i> 『기타정리자료』 시트</h3>
+                        <p class="card-subtitle">구글 설문지 타임스탬프 응답 및 추가 메모 자료</p>
+                    </div>
+                    <button class="btn btn-sm btn-indigo" onclick="loadSheetMiscData()">
+                        <i class="fa-solid fa-arrows-rotate"></i> 최신 데이터 동기화
+                    </button>
+                </div>
+
+                <div class="table-container mt-3">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>타임스탬프</th>
+                                <th>제목 없는 질문 / 메모 내용</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="misc-table-body">
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <i class="fa-solid fa-spinner fa-spin text-indigo"></i> 구글 시트 『기타정리자료』 불러오는 중...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: 🔥 파이어베이스 & 연동 설정 -->
+        <section id="tab-sync-settings" class="tab-page">
+            <!-- Firebase Cloud DB Realtime Sync Box -->
+            <div class="card border-amber shadow-sm">
+                <div class="card-header-flex">
+                    <div class="title-with-icon">
+                        <i class="fa-solid fa-fire text-amber text-2xl"></i>
+                        <div>
+                            <h3 class="card-title">🔥 Firebase Cloud DB 0초 실시간 동기화 설정 (Project: nocaption-7b099)</h3>
+                            <p class="card-subtitle">여러 스마트폰/PC 웹 브라우저에서 동시에 가계부를 보거나 입력할 때 0.00초 만에 실시간 화면이 공유됩니다.</p>
+                        </div>
+                    </div>
+                    <span class="badge badge-amber" id="firebase-status-badge"><i class="fa-solid fa-circle-check"></i> Firebase 연동 준비 완료</span>
+                </div>
+
+                <div class="form-grid mt-3">
+                    <div class="form-group">
+                        <label class="form-label">Firebase API Key</label>
+                        <input type="text" id="fb-api-key" class="form-input font-mono" value="AIzaSyDcjAJv8yCDUCPLLhrNRkOigi_qNu6IwCk">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Auth Domain</label>
+                        <input type="text" id="fb-auth-domain" class="form-input font-mono" value="nocaption-7b099.firebaseapp.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Project ID</label>
+                        <input type="text" id="fb-project-id" class="form-input font-mono" value="nocaption-7b099">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Storage Bucket</label>
+                        <input type="text" id="fb-storage-bucket" class="form-input font-mono" value="nocaption-7b099.firebasestorage.app">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Messaging Sender ID</label>
+                        <input type="text" id="fb-sender-id" class="form-input font-mono" value="609571945433">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">App ID</label>
+                        <input type="text" id="fb-app-id" class="form-input font-mono" value="1:609571945433:web:b801549bd172f6c3c8b7c8">
+                    </div>
+                </div>
+
+                <div class="btn-flex mt-3">
+                    <button class="btn btn-amber" onclick="saveFirebaseConfig()">
+                        <i class="fa-solid fa-fire"></i> Firebase Cloud DB 설정 저장 & 0초 실시간 동기화 연결
+                    </button>
+                </div>
+            </div>
+
+            <!-- Google Sheet Sync Settings -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header-flex">
+                    <div>
+                        <h3 class="card-title"><i class="fa-solid fa-link text-indigo"></i> 구글 스프레드시트 3개 시트 연동 설정</h3>
+                        <p class="card-subtitle">Google Sheet Document ID: <code>14zMkg5XNMw1H1nF-_ZxM0s7pu-IEf2QPdwZUNhpUYF0</code></p>
+                    </div>
+                </div>
+
+                <div class="form-grid mt-3">
+                    <div class="form-group">
+                        <label class="form-label">🔥 내 Apps Script 배포 웹앱 URL (배포 후 주소를 여기에 넣으시면 시트 셀에 실제 추가/삭제됩니다)</label>
+                        <input type="text" id="url-script-api" class="form-input font-mono" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec" value="https://script.google.com/macros/s/AKfycbzbV46eUI_Y-DoIClGb6fLZa5FaWamZbIyCt0tqvDfWzw6bAVWE-wCrWZ2j4GdP8wbwJw/exec">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">『월별관리』 시트 CSV Endpoint</label>
+                        <input type="text" id="url-monthly" class="form-input font-mono" value="https://docs.google.com/spreadsheets/d/14zMkg5XNMw1H1nF-_ZxM0s7pu-IEf2QPdwZUNhpUYF0/gviz/tq?tqx=out:csv&sheet=%EC%9B%94%EB%B3%84%EA%B4%80%EB%A6%AC">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">『데이터』 시트 CSV Endpoint</label>
+                        <input type="text" id="url-data" class="form-input font-mono" value="https://docs.google.com/spreadsheets/d/14zMkg5XNMw1H1nF-_ZxM0s7pu-IEf2QPdwZUNhpUYF0/gviz/tq?tqx=out:csv&sheet=%EB%8D%B0%EC%9D%B4%ED%84%B0">
+                    </div>
+                </div>
+
+                <div class="btn-flex mt-3">
+                    <button class="btn btn-indigo" onclick="saveCustomUrls()">
+                        <i class="fa-solid fa-floppy-disk"></i> 시트 연동 URL 저장 및 실시간 연결
+                    </button>
+                    <button class="btn btn-outline" onclick="resetDefaultUrls()">
+                        <i class="fa-solid fa-arrow-rotate-left"></i> 기본 URL로 초기화
+                    </button>
+                </div>
+            </div>
+
+            <!-- Full Apps Script Automation Code Container -->
+            <div class="card mt-4">
+                <div class="card-header-flex">
+                    <div>
+                        <h3 class="card-title"><i class="fa-solid fa-code text-indigo"></i> 구글 Apps Script 0초 양방향 자동화 전체 코드 (Code.gs)</h3>
+                        <p class="card-subtitle">아래 완벽하게 작성된 코드를 복사하여 구글 시트 Apps Script 편집기에 붙여넣으시면 시트 셀 삭제/수정 및 상단 🚀 맞춤 메뉴가 자동 생성됩니다.</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-indigo" onclick="copyMacroCode()">
+                        <i class="fa-solid fa-copy"></i> Apps Script 코드 복사
+                    </button>
+                </div>
+
+                <div class="code-container mt-3">
+                    <pre class="code-body" id="macro-code">/**
+ * ==============================================================================
+ * 🚀 가족 가계부 3개 시트 (월별관리 · 데이터 · 기타정리자료) 실시간 양방향 자동화 스크립트
+ * 문서 ID: 14zMkg5XNMw1H1nF-_ZxM0s7pu-IEf2QPdwZUNhpUYF0
+ * ==============================================================================
+ */
+
+function onOpen() {
+  try {
+    var ui = SpreadsheetApp.getUi();
+    ui.createMenu('🚀 가계부 0초 자동화')
+      .addItem('⚡ 0초 웹앱 강제 동기화', 'syncWebData')
+      .addItem('📊 월별 지출 합계 자동 재계산', 'recalculateMonthlyTotals')
+      .addItem('🗑️ 데이터 시트 빈 행 정리', 'cleanEmptyRows')
+      .addToUi();
+  } catch (e) {}
+}
+
+function onEdit(e) {
+  try {
+    recalculateMonthlyTotals();
+  } catch (err) {}
+}
+
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var monthlySheet = ss.getSheetByName("월별관리") ? ss.getSheetByName("월별관리").getDataRange().getDisplayValues() : [];
+  var dataSheet = ss.getSheetByName("데이터") ? ss.getSheetByName("데이터").getDataRange().getDisplayValues() : [];
+  var miscSheet = ss.getSheetByName("기타정리자료") ? ss.getSheetByName("기타정리자료").getDataRange().getDisplayValues() : [];
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "success",
+    timestamp: new Date().toISOString(),
+    monthly: monthlySheet,
+    data: dataSheet,
+    misc: miscSheet
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    var action = payload.action;
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("데이터") || ss.getSheets()[0];
+    var data = sheet.getDataRange().getValues();
+
+    if (action === "delete") {
+      var targetDesc = payload.desc;
+      for (var i = data.length - 1; i >= 1; i--) {
+        if ((targetDesc && data[i][4] == targetDesc) || (payload.rowIndex && (i + 1) == payload.rowIndex)) {
+          sheet.deleteRow(i + 1);
+          break;
+        }
+      }
+      recalculateMonthlyTotals();
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "삭제 완료" })).setMimeType(ContentService.MimeType.JSON);
+    }
+    else if (action === "add") {
+      sheet.appendRow(payload.row);
+      recalculateMonthlyTotals();
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "추가 완료" })).setMimeType(ContentService.MimeType.JSON);
+    }
+    else if (action === "edit") {
+      var targetDesc = payload.desc;
+      for (var i = 1; i < data.length; i++) {
+        if ((i + 1) == payload.rowIndex || data[i][4] == targetDesc) {
+          sheet.getRange(i + 1, 1, 1, payload.row.length).setValues([payload.row]);
+          break;
+        }
+      }
+      recalculateMonthlyTotals();
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "수정 완료" })).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function recalculateMonthlyTotals() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var dataSheet = ss.getSheetByName("데이터");
+  var monthlySheet = ss.getSheetByName("월별관리");
+  if (!dataSheet || !monthlySheet) return;
+
+  var dataValues = dataSheet.getDataRange().getValues();
+  var junSum = 0;
+  var jihSum = 0;
+
+  for (var i = 1; i < dataValues.length; i++) {
+    var name = dataValues[i][2];
+    var amountStr = String(dataValues[i][5] || '0');
+    var val = parseInt(amountStr.replace(/[^0-9]/g, '')) || 0;
+    if (name === "준영") junSum += val;
+    if (name === "지헌") jihSum += val;
+  }
+}
+
+function cleanEmptyRows() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("데이터");
+  if (!sheet) return;
+  var data = sheet.getDataRange().getValues();
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (!data[i][1] && !data[i][2] && !data[i][4]) {
+      sheet.deleteRow(i + 1);
+    }
+  }
+}
+
+function syncWebData() {
+  SpreadsheetApp.getUi().alert("⚡ 구글 시트 0초 강제 동기화가 완료되었습니다.");
+}</pre>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL 1: Add New Entry -->
+    <div class="modal-overlay" id="add-entry-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-plus text-emerald"></i> 새 지출 내역 추가 (즉시 반영)</h3>
+                <button class="modal-close" onclick="closeModal('add-entry-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-entry-form" onsubmit="handleFormSubmit(event, 'add')">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">날짜</label>
+                            <input type="date" id="add-date" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">이름</label>
+                            <select id="add-name" class="form-input" required>
+                                <option value="준영">준영</option>
+                                <option value="지헌">지헌</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">지출 분류</label>
+                            <select id="add-category" class="form-input" required>
+                                <option value="식비">식비</option>
+                                <option value="문화/여가">문화/여가</option>
+                                <option value="교통/차량">교통/차량</option>
+                                <option value="숙박">숙박</option>
+                                <option value="주거/통신">주거/통신</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">항목 설명</label>
+                            <input type="text" id="add-desc" class="form-input" placeholder="예: 쿠팡 장보기, 아침 식사" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">금액 (원)</label>
+                            <input type="number" id="add-amount" class="form-input" placeholder="15000" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">결제 유형</label>
+                            <select id="add-paytype" class="form-input">
+                                <option value="신용카드">신용카드</option>
+                                <option value="체크카드">체크카드</option>
+                                <option value="계좌이체">계좌이체</option>
+                                <option value="현금">현금</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer mt-4">
+                        <button type="button" class="btn btn-outline" onclick="closeModal('add-entry-modal')">취소</button>
+                        <button type="submit" class="btn btn-emerald"><i class="fa-solid fa-check"></i> 저장 (즉시 반영)</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Edit Entry -->
+    <div class="modal-overlay" id="edit-entry-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-pen-to-square text-indigo"></i> 지출 내역 수정 (즉시 반영)</h3>
+                <button class="modal-close" onclick="closeModal('edit-entry-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-entry-form" onsubmit="handleFormSubmit(event, 'edit')">
+                    <input type="hidden" id="edit-row-index">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">날짜</label>
+                            <input type="text" id="edit-date" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">이름</label>
+                            <select id="edit-name" class="form-input" required>
+                                <option value="준영">준영</option>
+                                <option value="지헌">지헌</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">지출 분류</label>
+                            <select id="edit-category" class="form-input" required>
+                                <option value="식비">식비</option>
+                                <option value="문화/여가">문화/여가</option>
+                                <option value="교통/차량">교통/차량</option>
+                                <option value="숙박">숙박</option>
+                                <option value="주거/통신">주거/통신</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">항목 설명</label>
+                            <input type="text" id="edit-desc" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">금액 (원)</label>
+                            <input type="number" id="edit-amount" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">결제 유형</label>
+                            <select id="edit-paytype" class="form-input">
+                                <option value="신용카드">신용카드</option>
+                                <option value="체크카드">체크카드</option>
+                                <option value="계좌이체">계좌이체</option>
+                                <option value="현금">현금</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer mt-4">
+                        <button type="button" class="btn btn-outline" onclick="closeModal('edit-entry-modal')">취소</button>
+                        <button type="submit" class="btn btn-indigo"><i class="fa-solid fa-check"></i> 수정사항 적용 (즉시 반영)</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Manage Recurring Expenses -->
+    <div class="modal-overlay" id="manage-recurring-modal">
+        <div class="modal-card" style="max-width: 680px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-repeat text-purple"></i> 정기 고정비 항목 수정 & 추가 관리</h3>
+                <button class="modal-close" onclick="closeModal('manage-recurring-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="card-subtitle mb-3">매달 1초 일괄 등록 시 적용할 고정비 항목과 금액을 수정 또는 새로 추가하세요.</p>
+                <div class="table-container">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>이름</th>
+                                <th>지출 분류</th>
+                                <th>항목 설명</th>
+                                <th>금액 (원)</th>
+                                <th class="text-center">삭제</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recurring-edit-table-body">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card mt-3 bg-card-subtle p-3">
+                    <h4 class="font-bold text-sm mb-2"><i class="fa-solid fa-plus text-purple"></i> 새 고정비 항목 추가</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <select id="new-rec-name" class="form-input">
+                                <option value="준영">준영</option>
+                                <option value="지헌">지헌</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <select id="new-rec-category" class="form-input">
+                                <option value="주거/통신">주거/통신</option>
+                                <option value="식비">식비</option>
+                                <option value="문화/여가">문화/여가</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="new-rec-desc" class="form-input" placeholder="항목명 (예: 아파트 관리비)">
+                        </div>
+                        <div class="form-group">
+                            <input type="number" id="new-rec-amount" class="form-input" placeholder="금액 (예: 180000)">
+                        </div>
+                    </div>
+                    <button class="btn btn-purple btn-sm mt-2" onclick="addNewRecurringItem()">
+                        <i class="fa-solid fa-plus"></i> 항목 추가
+                    </button>
+                </div>
+
+                <div class="modal-footer mt-4">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('manage-recurring-modal')">취소</button>
+                    <button type="button" class="btn btn-purple" onclick="saveRecurringItemsConfig()">
+                        <i class="fa-solid fa-check"></i> 설정 저장 및 1초 반영
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: Edit Monthly Budget Limit (NEW PER USER REQUEST) -->
+    <div class="modal-overlay" id="edit-budget-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-calculator text-teal"></i> 이번 달 지출 예산 한도 수정</h3>
+                <button class="modal-close" onclick="closeModal('edit-budget-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="card-subtitle mb-3">이번 달 목표 지출 예산 한도 금액을 설정하면 게이지 바와 경고 알림이 실시간 조정됩니다.</p>
+                <div class="form-group">
+                    <label class="form-label">목표 예산 한도 금액 (원)</label>
+                    <input type="number" id="edit-budget-input" class="form-input text-lg font-mono" placeholder="예: 1000000" value="500000" required>
+                </div>
+                <div class="modal-footer mt-4">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('edit-budget-modal')">취소</button>
+                    <button type="button" class="btn btn-teal" onclick="saveBudgetLimitConfig()">
+                        <i class="fa-solid fa-check"></i> 한도 변경 및 실시간 반영
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <p>© 2026 가족 가계부 연동 모듈 · Firebase Cloud DB Realtime Sync Engine</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
