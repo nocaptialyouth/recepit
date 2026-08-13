@@ -1,4 +1,4 @@
-// 가족 가계부 동기화 & 5초 무멈춤 자동 동기화 & 구글 시트 Realtime Apps Script + Firebase + GitHub Auto Sync Engine
+// 가족 가계부 동기화 & 5초 무멈춤 자동 동기화 & 모바일/태블릿 맞춤 반응형 Engine
 
 let syncTimer = null;
 let countdownTimer = null;
@@ -49,8 +49,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function initClock() {
     function updateTime() {
-        const now = new Date();
-        document.getElementById('live-timestamp').textContent = now.toTimeString().split(' ')[0];
+        const timeEl = document.getElementById('live-timestamp');
+        if (timeEl) {
+            const now = new Date();
+            timeEl.textContent = now.toTimeString().split(' ')[0];
+        }
     }
     updateTime();
     setInterval(updateTime, 1000);
@@ -65,10 +68,7 @@ function setDefaultDateInput() {
 // 🔥 Google Apps Script HTTP POST Direct Cell Write Engine
 async function sendToAppsScript(action, payloadData) {
     const scriptUrl = localStorage.getItem('url_script_api') || DEFAULT_URL_SCRIPT_API;
-    if (!scriptUrl) {
-        console.warn("Apps Script WebApp URL이 설정되지 않았습니다.");
-        return;
-    }
+    if (!scriptUrl) return;
 
     try {
         const payload = {
@@ -76,10 +76,9 @@ async function sendToAppsScript(action, payloadData) {
             ...payloadData
         };
 
-        // Send HTTP POST request to Google Apps Script WebApp endpoint
         await fetch(scriptUrl, {
             method: 'POST',
-            mode: 'no-cors', // Google Apps Script WebApp cross-origin redirect support
+            mode: 'no-cors',
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify(payload)
         });
@@ -104,12 +103,15 @@ function loadSavedBudgetLimit() {
 }
 
 function openEditBudgetModal() {
-    document.getElementById('edit-budget-input').value = currentTargetBudget;
-    document.getElementById('edit-budget-modal').classList.add('active');
+    const inputEl = document.getElementById('edit-budget-input');
+    if (inputEl) inputEl.value = currentTargetBudget;
+    const modalEl = document.getElementById('edit-budget-modal');
+    if (modalEl) modalEl.classList.add('active');
 }
 
 function saveBudgetLimitConfig() {
-    const inputVal = parseInt(document.getElementById('edit-budget-input').value) || 0;
+    const inputEl = document.getElementById('edit-budget-input');
+    const inputVal = inputEl ? parseInt(inputEl.value) || 0 : 0;
     if (inputVal <= 0) {
         alert("올바른 예산 한도 금액을 입력해 주세요.");
         return;
@@ -206,14 +208,14 @@ function mergeFirebaseRealtimeRows(fbRows) {
 }
 
 function saveFirebaseConfig() {
-    const newConfig = {
-        apiKey: document.getElementById('fb-api-key').value,
-        authDomain: document.getElementById('fb-auth-domain').value,
-        projectId: document.getElementById('fb-project-id').value,
-        storageBucket: document.getElementById('fb-storage-bucket').value,
-        messagingSenderId: document.getElementById('fb-sender-id').value,
-        appId: document.getElementById('fb-app-id').value
-    };
+    const apiKey = document.getElementById('fb-api-key') ? document.getElementById('fb-api-key').value : '';
+    const authDomain = document.getElementById('fb-auth-domain') ? document.getElementById('fb-auth-domain').value : '';
+    const projectId = document.getElementById('fb-project-id') ? document.getElementById('fb-project-id').value : '';
+    const storageBucket = document.getElementById('fb-storage-bucket') ? document.getElementById('fb-storage-bucket').value : '';
+    const messagingSenderId = document.getElementById('fb-sender-id') ? document.getElementById('fb-sender-id').value : '';
+    const appId = document.getElementById('fb-app-id') ? document.getElementById('fb-app-id').value : '';
+
+    const newConfig = { apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId };
 
     localStorage.setItem('firebase_config', JSON.stringify(newConfig));
     alert("🔥 Firebase Cloud DB 0초 실시간 동기화 설정이 저장되었습니다!");
@@ -262,10 +264,10 @@ function switchTab(tabId) {
 
 function triggerManualSync() {
     const btn = document.getElementById('manual-sync-btn');
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 동기화 중...';
+    if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 동기화 중...';
     fetchAllSheets().then(() => {
         setTimeout(() => {
-            btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> 구글 시트 동기화';
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> 구글 시트 동기화';
         }, 500);
     });
 }
@@ -471,8 +473,11 @@ function renderDataLogRows(rows) {
 }
 
 function filterDataRows() {
-    const query = document.getElementById('data-search-input').value.toLowerCase();
-    const selectedCat = document.getElementById('data-category-select').value;
+    const searchInput = document.getElementById('data-search-input');
+    const catSelect = document.getElementById('data-category-select');
+
+    const query = searchInput ? searchInput.value.toLowerCase() : '';
+    const selectedCat = catSelect ? catSelect.value : '';
 
     const filtered = rawDataLogRows.filter(r => {
         const matchesQuery = !query || r.desc.toLowerCase().includes(query) || r.name.toLowerCase().includes(query) || r.category.toLowerCase().includes(query);
@@ -493,10 +498,15 @@ function recalculateGlobalKPIs() {
         if (r.name === '지헌') jihTotal += val;
     });
 
-    document.getElementById('kpi-junyoung-exp').textContent = `₩${junTotal.toLocaleString()}`;
-    document.getElementById('kpi-jiheon-exp').textContent = `₩${jihTotal.toLocaleString()}`;
-    document.getElementById('kpi-total-exp').textContent = `₩${(junTotal + jihTotal).toLocaleString()}`;
-    document.getElementById('kpi-months-count').textContent = `${rawDataLogRows.length}건`;
+    const junEl = document.getElementById('kpi-junyoung-exp');
+    const jihEl = document.getElementById('kpi-jiheon-exp');
+    const totEl = document.getElementById('kpi-total-exp');
+    const countEl = document.getElementById('kpi-months-count');
+
+    if (junEl) junEl.textContent = `₩${junTotal.toLocaleString()}`;
+    if (jihEl) jihEl.textContent = `₩${jihTotal.toLocaleString()}`;
+    if (totEl) totEl.textContent = `₩${(junTotal + jihTotal).toLocaleString()}`;
+    if (countEl) countEl.textContent = `${rawDataLogRows.length}건`;
 
     updateBudgetTracker(junTotal + jihTotal);
     runAiDiagnosis();
@@ -506,6 +516,7 @@ function recalculateGlobalKPIs() {
 async function loadSheetMiscData() {
     const url = localStorage.getItem('url_misc') || DEFAULT_URL_MISC;
     const tableBody = document.getElementById('misc-table-body');
+    if (!tableBody) return;
 
     try {
         const res = await fetch(url);
@@ -517,7 +528,7 @@ async function loadSheetMiscData() {
             <tr>
                 <td>1</td>
                 <td>2026-08-12 11:50:00</td>
-                <td>GitHub (nocaptialyouth/recepit) & Firebase 연동 활성화 완료</td>
+                <td>GitHub & Firebase 연동 모바일/태블릿 반응형 엔진 가동 완료</td>
                 <td><span class="badge badge-teal">정상 동기화</span></td>
             </tr>
         `;
@@ -593,7 +604,7 @@ function runAiDiagnosis() {
 // ⚡ AUTOMATION TOOL 1: 1초 자연어 스마트 텍스트 입력기
 function processSmartText() {
     const inputEl = document.getElementById('smart-text-input');
-    const text = inputEl.value.trim();
+    const text = inputEl ? inputEl.value.trim() : '';
     if (!text) {
         alert("분석할 텍스트를 입력해 주세요. (예: 식비 15000 커피)");
         return;
@@ -641,23 +652,19 @@ function processSmartText() {
     renderDataLogRows(rawDataLogRows);
     recalculateGlobalKPIs();
 
-    // 1. Send HTTP POST write to Google Apps Script WebApp (Direct Google Sheet Cell Write)
     sendToAppsScript("add", {
         row: [newRowObj.mDate, newRowObj.date, newRowObj.name, newRowObj.category, newRowObj.desc, newRowObj.amount, newRowObj.payType, newRowObj.aiCategory]
     });
-
-    // 2. Send 0-second realtime update to Firebase Cloud DB
     syncToFirebase('add', newRowObj);
-
-    // 3. Trigger 5-second ticker sync
     fetchAllSheets(true);
 
-    inputEl.value = '';
+    if (inputEl) inputEl.value = '';
     alert(`⚡ [스마트 자연어 분석 완료]\n• 이름: ${name}\n• 분류: ${category}\n• 항목: ${desc}\n• 금액: ${formattedAmount}\n구글 스프레드시트 및 Firebase에 실시간 전송되었습니다!`);
 }
 
 function fillSmartSample(sampleText) {
-    document.getElementById('smart-text-input').value = sampleText;
+    const inputEl = document.getElementById('smart-text-input');
+    if (inputEl) inputEl.value = sampleText;
     processSmartText();
 }
 
@@ -665,11 +672,15 @@ function fillSmartSample(sampleText) {
 function handleReceiptUpload(input) {
     if (input.files && input.files[0]) {
         const file = input.files[0];
-        document.getElementById('ocr-result-box').classList.remove('hidden');
+        const resBox = document.getElementById('ocr-result-box');
+        if (resBox) resBox.classList.remove('hidden');
 
         const randomAmount = (Math.floor(Math.random() * 30) + 5) * 1000;
-        document.getElementById('ocr-merchant').textContent = file.name.includes("스타벅스") ? "스타벅스 강남점" : "이마트/쿠팡 장보기";
-        document.getElementById('ocr-amount').textContent = `₩${randomAmount.toLocaleString()}원`;
+        const merchEl = document.getElementById('ocr-merchant');
+        const amtEl = document.getElementById('ocr-amount');
+
+        if (merchEl) merchEl.textContent = file.name.includes("스타벅스") ? "스타벅스 강남점" : "이마트/쿠팡 장보기";
+        if (amtEl) amtEl.textContent = `₩${randomAmount.toLocaleString()}원`;
 
         const today = new Date();
         const formattedDate = `${today.getFullYear()}. ${today.getMonth() + 1}. ${today.getDate()}`;
@@ -682,7 +693,7 @@ function handleReceiptUpload(input) {
             date: formattedDate,
             name: "준영",
             category: "식비",
-            desc: document.getElementById('ocr-merchant').textContent,
+            desc: merchEl ? merchEl.textContent : "영수증 지출",
             amount: `₩${randomAmount.toLocaleString()}`,
             payType: "신용카드",
             aiCategory: "식비"
@@ -707,7 +718,9 @@ function applyOcrToLedger() {
     syncToFirebase('add', ocrPendingRow);
     fetchAllSheets(true);
 
-    document.getElementById('ocr-result-box').classList.add('hidden');
+    const resBox = document.getElementById('ocr-result-box');
+    if (resBox) resBox.classList.add('hidden');
+
     alert(`📷 영수증 스캔 내역 [${ocrPendingRow.desc} - ${ocrPendingRow.amount}] 이 구글 시트로 동기화되었습니다!`);
     ocrPendingRow = null;
 }
@@ -741,7 +754,8 @@ function renderRecurringExpensesList() {
 
 function openManageRecurringModal() {
     renderRecurringEditTable();
-    document.getElementById('manage-recurring-modal').classList.add('active');
+    const modal = document.getElementById('manage-recurring-modal');
+    if (modal) modal.classList.add('active');
 }
 
 function renderRecurringEditTable() {
@@ -769,10 +783,15 @@ function renderRecurringEditTable() {
 }
 
 function addNewRecurringItem() {
-    const name = document.getElementById('new-rec-name').value;
-    const category = document.getElementById('new-rec-category').value;
-    const desc = document.getElementById('new-rec-desc').value.trim();
-    const amountNum = parseInt(document.getElementById('new-rec-amount').value) || 0;
+    const nameEl = document.getElementById('new-rec-name');
+    const catEl = document.getElementById('new-rec-category');
+    const descEl = document.getElementById('new-rec-desc');
+    const amtEl = document.getElementById('new-rec-amount');
+
+    const name = nameEl ? nameEl.value : '준영';
+    const category = catEl ? catEl.value : '기타';
+    const desc = descEl ? descEl.value.trim() : '';
+    const amountNum = amtEl ? parseInt(amtEl.value) || 0 : 0;
 
     if (!desc || amountNum <= 0) {
         alert("항목명과 올바른 금액을 입력해 주세요.");
@@ -782,8 +801,8 @@ function addNewRecurringItem() {
     currentRecurringList.push({ name, category, desc, amount: amountNum });
     renderRecurringEditTable();
 
-    document.getElementById('new-rec-desc').value = '';
-    document.getElementById('new-rec-amount').value = '';
+    if (descEl) descEl.value = '';
+    if (amtEl) amtEl.value = '';
 }
 
 function deleteRecurringItem(idx) {
@@ -893,40 +912,51 @@ function exportToCSV() {
 
 // CRUD Modal Handlers
 function openAddEntryModal() {
-    document.getElementById('add-entry-modal').classList.add('active');
+    const modal = document.getElementById('add-entry-modal');
+    if (modal) modal.classList.add('active');
 }
 
 function openEditEntryModal(rowIdx) {
     const item = rawDataLogRows[rowIdx];
     if (!item) return;
 
-    document.getElementById('edit-row-index').value = rowIdx;
-    document.getElementById('edit-date').value = item.date;
-    document.getElementById('edit-name').value = item.name;
-    document.getElementById('edit-category').value = item.category;
-    document.getElementById('edit-desc').value = item.desc;
-    document.getElementById('edit-amount').value = parseInt(item.amount.replace(/[^0-9]/g, '')) || 0;
-    document.getElementById('edit-paytype').value = item.payType;
+    const rowIdxEl = document.getElementById('edit-row-index');
+    const dateEl = document.getElementById('edit-date');
+    const nameEl = document.getElementById('edit-name');
+    const catEl = document.getElementById('edit-category');
+    const descEl = document.getElementById('edit-desc');
+    const amtEl = document.getElementById('edit-amount');
+    const payEl = document.getElementById('edit-paytype');
 
-    document.getElementById('edit-entry-modal').classList.add('active');
+    if (rowIdxEl) rowIdxEl.value = rowIdx;
+    if (dateEl) dateEl.value = item.date;
+    if (nameEl) nameEl.value = item.name;
+    if (catEl) catEl.value = item.category;
+    if (descEl) descEl.value = item.desc;
+    if (amtEl) amtEl.value = parseInt(item.amount.replace(/[^0-9]/g, '')) || 0;
+    if (payEl) payEl.value = item.payType;
+
+    const modal = document.getElementById('edit-entry-modal');
+    if (modal) modal.classList.add('active');
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove('active');
 }
 
 function handleFormSubmit(event, type) {
-    event.preventDefault();
+    if (event) event.preventDefault();
 
     if (type === 'add') {
-        const rawDate = document.getElementById('add-date').value;
-        const name = document.getElementById('add-name').value;
-        const category = document.getElementById('add-category').value;
-        const desc = document.getElementById('add-desc').value;
-        const amountNum = parseInt(document.getElementById('add-amount').value) || 0;
-        const payType = document.getElementById('add-paytype').value;
+        const rawDate = document.getElementById('add-date') ? document.getElementById('add-date').value : '';
+        const name = document.getElementById('add-name') ? document.getElementById('add-name').value : '준영';
+        const category = document.getElementById('add-category') ? document.getElementById('add-category').value : '식비';
+        const desc = document.getElementById('add-desc') ? document.getElementById('add-desc').value : '';
+        const amountNum = document.getElementById('add-amount') ? parseInt(document.getElementById('add-amount').value) || 0 : 0;
+        const payType = document.getElementById('add-paytype') ? document.getElementById('add-paytype').value : '신용카드';
 
-        const parts = rawDate.split('-');
+        const parts = rawDate ? rawDate.split('-') : ['2026', '08', '13'];
         const formattedDate = `${parts[0]}. ${parseInt(parts[1])}. ${parseInt(parts[2])}`;
         const mDate = `${parts[0]},${parts[1]}`;
         const formattedAmount = `₩${amountNum.toLocaleString()}`;
@@ -954,26 +984,21 @@ function handleFormSubmit(event, type) {
         recalculateGlobalKPIs();
         closeModal('add-entry-modal');
 
-        // 1. Send HTTP POST to Apps Script WebApp
         sendToAppsScript("add", {
             row: [newRowObj.mDate, newRowObj.date, newRowObj.name, newRowObj.category, newRowObj.desc, newRowObj.amount, newRowObj.payType, newRowObj.aiCategory]
         });
-
-        // 2. Send to Firebase
         syncToFirebase('add', newRowObj);
-
-        // 3. Trigger sheet fetch
         fetchAllSheets(true);
 
         alert(`✅ "${desc}" (${formattedAmount}) 항목이 구글 스프레드시트에 즉시 전송되었습니다!`);
     } else if (type === 'edit') {
-        const rowIdx = parseInt(document.getElementById('edit-row-index').value);
-        const date = document.getElementById('edit-date').value;
-        const name = document.getElementById('edit-name').value;
-        const category = document.getElementById('edit-category').value;
-        const desc = document.getElementById('edit-desc').value;
-        const amountNum = parseInt(document.getElementById('edit-amount').value) || 0;
-        const payType = document.getElementById('edit-paytype').value;
+        const rowIdx = document.getElementById('edit-row-index') ? parseInt(document.getElementById('edit-row-index').value) : 0;
+        const date = document.getElementById('edit-date') ? document.getElementById('edit-date').value : '';
+        const name = document.getElementById('edit-name') ? document.getElementById('edit-name').value : '준영';
+        const category = document.getElementById('edit-category') ? document.getElementById('edit-category').value : '식비';
+        const desc = document.getElementById('edit-desc') ? document.getElementById('edit-desc').value : '';
+        const amountNum = document.getElementById('edit-amount') ? parseInt(document.getElementById('edit-amount').value) || 0 : 0;
+        const payType = document.getElementById('edit-paytype') ? document.getElementById('edit-paytype').value : '신용카드';
         const formattedAmount = `₩${amountNum.toLocaleString()}`;
 
         const targetObj = rawDataLogRows[rowIdx];
@@ -1098,9 +1123,11 @@ function renderMonthlyChart(labels, junData, jihData) {
     });
 }
 
-function filterMonthlyChart(type) {
+function filterMonthlyChart(type, btnEvt) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
+    if (btnEvt && btnEvt.target) {
+        btnEvt.target.classList.add('active');
+    }
 
     if (!monthlyChart) return;
     if (type === 'jun') {
@@ -1120,8 +1147,12 @@ function saveCustomUrls() {
     if (document.getElementById('url-script-api')) {
         localStorage.setItem('url_script_api', document.getElementById('url-script-api').value);
     }
-    localStorage.setItem('url_monthly', document.getElementById('url-monthly').value);
-    localStorage.setItem('url_data', document.getElementById('url-data').value);
+    if (document.getElementById('url-monthly')) {
+        localStorage.setItem('url_monthly', document.getElementById('url-monthly').value);
+    }
+    if (document.getElementById('url-data')) {
+        localStorage.setItem('url_data', document.getElementById('url-data').value);
+    }
     alert("🔗 시트 및 Apps Script 연동 URL이 저장되었습니다! 실시간 데이터를 갱신합니다.");
     fetchAllSheets();
 }
@@ -1131,8 +1162,8 @@ function resetDefaultUrls() {
     localStorage.removeItem('url_monthly');
     localStorage.removeItem('url_data');
     if (document.getElementById('url-script-api')) document.getElementById('url-script-api').value = DEFAULT_URL_SCRIPT_API;
-    document.getElementById('url-monthly').value = DEFAULT_URL_MONTHLY;
-    document.getElementById('url-data').value = DEFAULT_URL_DATA;
+    if (document.getElementById('url-monthly')) document.getElementById('url-monthly').value = DEFAULT_URL_MONTHLY;
+    if (document.getElementById('url-data')) document.getElementById('url-data').value = DEFAULT_URL_DATA;
     alert("기본 URL로 초기화되었습니다.");
     fetchAllSheets();
 }
@@ -1141,8 +1172,12 @@ function loadSavedUrls() {
     if (localStorage.getItem('url_script_api') && document.getElementById('url-script-api')) {
         document.getElementById('url-script-api').value = localStorage.getItem('url_script_api');
     }
-    if (localStorage.getItem('url_monthly')) document.getElementById('url-monthly').value = localStorage.getItem('url_monthly');
-    if (localStorage.getItem('url_data')) document.getElementById('url-data').value = localStorage.getItem('url_data');
+    if (localStorage.getItem('url_monthly') && document.getElementById('url-monthly')) {
+        document.getElementById('url-monthly').value = localStorage.getItem('url_monthly');
+    }
+    if (localStorage.getItem('url_data') && document.getElementById('url-data')) {
+        document.getElementById('url-data').value = localStorage.getItem('url_data');
+    }
 }
 
 function getFallbackMonthlyCSV() {
