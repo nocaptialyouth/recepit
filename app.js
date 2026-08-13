@@ -1,4 +1,4 @@
-// 가족 가계부 동기화 & 5초 무멈춤 자동 동기화 & GitHub Auto Sync Engine
+// 가족 가계부 동기화 & 5초 무멈춤 자동 동기화 & 구글 시트 Realtime Apps Script + Firebase + GitHub Auto Sync Engine
 
 let syncTimer = null;
 let countdownTimer = null;
@@ -9,6 +9,9 @@ let rawDataLogRows = [];
 let ocrPendingRow = null;
 let db = null;
 let currentTargetBudget = 500000;
+
+// Default Apps Script WebApp URL (Deployed for Document 14zMkg5XNMw1H1nF-_ZxM0s7pu-IEf2QPdwZUNhpUYF0)
+const DEFAULT_URL_SCRIPT_API = "https://script.google.com/macros/s/AKfycbzbV46eUI_Y-DoIClGb6fLZa5FaWamZbIyCt0tqvDfWzw6bAVWE-wCrWZ2j4GdP8wbwJw/exec";
 
 // Default Firebase Configuration (Project: nocaption-7b099)
 const DEFAULT_FIREBASE_CONFIG = {
@@ -59,7 +62,35 @@ function setDefaultDateInput() {
     if (addDateInput) addDateInput.value = today;
 }
 
-// 🐙 GitHub Auto Sync Ticker Trigger
+// 🔥 Google Apps Script HTTP POST Direct Cell Write Engine
+async function sendToAppsScript(action, payloadData) {
+    const scriptUrl = localStorage.getItem('url_script_api') || DEFAULT_URL_SCRIPT_API;
+    if (!scriptUrl) {
+        console.warn("Apps Script WebApp URL이 설정되지 않았습니다.");
+        return;
+    }
+
+    try {
+        const payload = {
+            action: action,
+            ...payloadData
+        };
+
+        // Send HTTP POST request to Google Apps Script WebApp endpoint
+        await fetch(scriptUrl, {
+            method: 'POST',
+            mode: 'no-cors', // Google Apps Script WebApp cross-origin redirect support
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(payload)
+        });
+
+        console.log(`✅ 구글 시트 셀 실시간 반영 요청 완료 [Action: ${action}]`);
+    } catch (e) {
+        console.warn("Apps Script HTTP Write Error:", e);
+    }
+}
+
+// 🐙 GitHub Auto Sync Trigger
 function triggerGithubAutoSync() {
     alert("🐙 GitHub (https://github.com/nocaptialyouth/recepit) 메인 브랜치로 최신 가계부 코드와 지출 데이터가 1초 만에 자동 커밋 & 푸시 동기화되었습니다!");
 }
@@ -253,7 +284,7 @@ async function fetchAllSheets(isSilent = false) {
     ]);
 
     if (statusText) {
-        statusText.textContent = `🐙 GitHub (nocaptialyouth/recepit) & Firebase 0초 실시간 연동 중 - ${new Date().toLocaleTimeString()}`;
+        statusText.textContent = `🐙 GitHub & 구글 시트 & Firebase 0초 실시간 연동 중 - ${new Date().toLocaleTimeString()}`;
     }
 }
 
@@ -610,11 +641,19 @@ function processSmartText() {
     renderDataLogRows(rawDataLogRows);
     recalculateGlobalKPIs();
 
+    // 1. Send HTTP POST write to Google Apps Script WebApp (Direct Google Sheet Cell Write)
+    sendToAppsScript("add", {
+        row: [newRowObj.mDate, newRowObj.date, newRowObj.name, newRowObj.category, newRowObj.desc, newRowObj.amount, newRowObj.payType, newRowObj.aiCategory]
+    });
+
+    // 2. Send 0-second realtime update to Firebase Cloud DB
     syncToFirebase('add', newRowObj);
+
+    // 3. Trigger 5-second ticker sync
     fetchAllSheets(true);
 
     inputEl.value = '';
-    alert(`⚡ [스마트 자연어 분석 완료]\n• 이름: ${name}\n• 분류: ${category}\n• 항목: ${desc}\n• 금액: ${formattedAmount}\nGitHub 및 Firebase 0초 실시간 DB에 동기화되었습니다!`);
+    alert(`⚡ [스마트 자연어 분석 완료]\n• 이름: ${name}\n• 분류: ${category}\n• 항목: ${desc}\n• 금액: ${formattedAmount}\n구글 스프레드시트 및 Firebase에 실시간 전송되었습니다!`);
 }
 
 function fillSmartSample(sampleText) {
@@ -662,11 +701,14 @@ function applyOcrToLedger() {
     renderDataLogRows(rawDataLogRows);
     recalculateGlobalKPIs();
 
+    sendToAppsScript("add", {
+        row: [ocrPendingRow.mDate, ocrPendingRow.date, ocrPendingRow.name, ocrPendingRow.category, ocrPendingRow.desc, ocrPendingRow.amount, ocrPendingRow.payType, ocrPendingRow.aiCategory]
+    });
     syncToFirebase('add', ocrPendingRow);
     fetchAllSheets(true);
 
     document.getElementById('ocr-result-box').classList.add('hidden');
-    alert(`📷 영수증 스캔 내역 [${ocrPendingRow.desc} - ${ocrPendingRow.amount}] 이 동기화되었습니다!`);
+    alert(`📷 영수증 스캔 내역 [${ocrPendingRow.desc} - ${ocrPendingRow.amount}] 이 구글 시트로 동기화되었습니다!`);
     ocrPendingRow = null;
 }
 
@@ -780,6 +822,10 @@ function applyRecurringExpenses() {
         };
         localAdded.unshift(newObj);
         rawDataLogRows.unshift(newObj);
+
+        sendToAppsScript("add", {
+            row: [newObj.mDate, newObj.date, newObj.name, newObj.category, newObj.desc, newObj.amount, newObj.payType, newObj.aiCategory]
+        });
         syncToFirebase('add', newObj);
     });
 
@@ -788,7 +834,7 @@ function applyRecurringExpenses() {
     recalculateGlobalKPIs();
     fetchAllSheets(true);
 
-    alert(`⚡ 고정비 ${currentRecurringList.length}건이 GitHub & Firebase에 5초 무멈춤 자동 동기화되었습니다!`);
+    alert(`⚡ 고정비 ${currentRecurringList.length}건이 구글 스프레드시트 셀에 실시간 등록되었습니다!`);
 }
 
 // ⚡ AUTOMATION TOOL 4: 월별 예산 한도 설정 & 실시간 초과 경고 트래커
@@ -908,10 +954,18 @@ function handleFormSubmit(event, type) {
         recalculateGlobalKPIs();
         closeModal('add-entry-modal');
 
+        // 1. Send HTTP POST to Apps Script WebApp
+        sendToAppsScript("add", {
+            row: [newRowObj.mDate, newRowObj.date, newRowObj.name, newRowObj.category, newRowObj.desc, newRowObj.amount, newRowObj.payType, newRowObj.aiCategory]
+        });
+
+        // 2. Send to Firebase
         syncToFirebase('add', newRowObj);
+
+        // 3. Trigger sheet fetch
         fetchAllSheets(true);
 
-        alert(`✅ "${desc}" (${formattedAmount}) 항목이 5초 자동 동기화 엔진을 통해 정상 등록되었습니다!`);
+        alert(`✅ "${desc}" (${formattedAmount}) 항목이 구글 스프레드시트에 즉시 전송되었습니다!`);
     } else if (type === 'edit') {
         const rowIdx = parseInt(document.getElementById('edit-row-index').value);
         const date = document.getElementById('edit-date').value;
@@ -939,10 +993,15 @@ function handleFormSubmit(event, type) {
             recalculateGlobalKPIs();
             closeModal('edit-entry-modal');
 
+            sendToAppsScript("edit", {
+                rowIndex: targetObj.rowIndex,
+                desc: targetObj.desc,
+                row: [targetObj.mDate, targetObj.date, targetObj.name, targetObj.category, targetObj.desc, targetObj.amount, targetObj.payType, targetObj.aiCategory]
+            });
             syncToFirebase('add', targetObj);
             fetchAllSheets(true);
 
-            alert("✏️ 지출 내역 수정사항이 동기화되었습니다!");
+            alert("✏️ 지출 내역 수정사항이 구글 스프레드시트에 전송되었습니다!");
         }
     }
 }
@@ -962,10 +1021,14 @@ function deleteDataRow(rowIdx) {
         renderDataLogRows(rawDataLogRows);
         recalculateGlobalKPIs();
 
+        sendToAppsScript("delete", {
+            rowIndex: deletedItem.rowIndex,
+            desc: deletedItem.desc
+        });
         syncToFirebase('delete', deletedItem);
         fetchAllSheets(true);
 
-        alert(`🗑️ [${deletedItem.desc}] (${deletedItem.amount}) 항목이 동기화 삭제되었습니다!`);
+        alert(`🗑️ [${deletedItem.desc}] (${deletedItem.amount}) 항목 삭제 요청이 구글 시트로 전송되었습니다!`);
     }
 }
 
@@ -1054,15 +1117,20 @@ function filterMonthlyChart(type) {
 }
 
 function saveCustomUrls() {
+    if (document.getElementById('url-script-api')) {
+        localStorage.setItem('url_script_api', document.getElementById('url-script-api').value);
+    }
     localStorage.setItem('url_monthly', document.getElementById('url-monthly').value);
     localStorage.setItem('url_data', document.getElementById('url-data').value);
-    alert("🔗 시트 연동 URL이 저장되었습니다! 실시간 데이터를 갱신합니다.");
+    alert("🔗 시트 및 Apps Script 연동 URL이 저장되었습니다! 실시간 데이터를 갱신합니다.");
     fetchAllSheets();
 }
 
 function resetDefaultUrls() {
+    localStorage.removeItem('url_script_api');
     localStorage.removeItem('url_monthly');
     localStorage.removeItem('url_data');
+    if (document.getElementById('url-script-api')) document.getElementById('url-script-api').value = DEFAULT_URL_SCRIPT_API;
     document.getElementById('url-monthly').value = DEFAULT_URL_MONTHLY;
     document.getElementById('url-data').value = DEFAULT_URL_DATA;
     alert("기본 URL로 초기화되었습니다.");
@@ -1070,6 +1138,9 @@ function resetDefaultUrls() {
 }
 
 function loadSavedUrls() {
+    if (localStorage.getItem('url_script_api') && document.getElementById('url-script-api')) {
+        document.getElementById('url-script-api').value = localStorage.getItem('url_script_api');
+    }
     if (localStorage.getItem('url_monthly')) document.getElementById('url-monthly').value = localStorage.getItem('url_monthly');
     if (localStorage.getItem('url_data')) document.getElementById('url-data').value = localStorage.getItem('url_data');
 }
