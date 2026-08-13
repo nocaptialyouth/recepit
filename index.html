@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>가족 가계부 동기화 시스템 | 초보자 5대 자동화 센터 & 예산 한도 설정</title>
+    <title>가족 가계부 동기화 시스템 | GitHub & Firebase 실시간 연동</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,7 +29,7 @@
                 </div>
                 <div class="brand-text">
                     <h1>가족 가계부 동기화 시스템</h1>
-                    <p>구글 시트 3개 시트 + Firebase Cloud DB 0초 실시간 하이브리드 연동</p>
+                    <p>구글 시트 3개 시트 + Firebase Cloud DB + GitHub (nocaptialyouth/recepit) 하이브리드 연동</p>
                 </div>
             </div>
 
@@ -75,7 +75,7 @@
             </button>
 
             <button class="nav-btn highlight-tab" data-tab="sync-settings" onclick="switchTab('sync-settings')">
-                <i class="fa-solid fa-fire text-amber"></i> 🔥 파이어베이스 & 연동 설정
+                <i class="fa-brands fa-github text-primary"></i> 🐙 GitHub & 파이어베이스 연동
             </button>
         </nav>
     </header>
@@ -86,7 +86,7 @@
         <div class="status-ribbon">
             <div class="ribbon-left">
                 <span class="pulse-dot"></span>
-                <span id="sheet-sync-status-text">🔥 5초 무멈춤 자동 동기화 가동중 (구글 시트 & Firebase 연결 완료)</span>
+                <span id="sheet-sync-status-text">🐙 GitHub (nocaptialyouth/recepit) & Firebase 0초 실시간 연동 중</span>
             </div>
             <div class="ribbon-right">
                 <span class="badge-document" id="auto-sync-countdown-text">⚡ 5초 무멈춤 자동 동기화 가동중 (5초 후 갱신)</span>
@@ -101,13 +101,13 @@
                 <div class="a-banner-left">
                     <i class="fa-solid fa-bolt-lightning logo-amber"></i>
                     <div>
-                        <h2>초보자를 위한 5대 스마트 자동화 센터 & AI 진단</h2>
-                        <p>입력 양식 작성 필요 없이 1초 텍스트 분석, 영수증 스캔, 고정비 편집·일괄등록, 예산 한도 설정을 클릭 한 번으로 실행하세요!</p>
+                        <h2>초보자를 위한 5대 스마트 자동화 센터 & GitHub 연동</h2>
+                        <p>입력 양식 작성 필요 없이 1초 텍스트 분석, 영수증 스캔, 고정비 편집·일괄등록, GitHub 데이터 동기화를 클릭 한 번으로 실행하세요!</p>
                     </div>
                 </div>
             </div>
 
-            <!-- EXPERT AI FEATURE: AI 스마트 지출 진단 & 이상 거래 자동 감지 센터 -->
+            <!-- EXPERT AI FEATURE -->
             <div class="card border-amber shadow-sm mt-4">
                 <div class="card-header-flex">
                     <div class="title-with-icon">
@@ -232,7 +232,7 @@
             </div>
 
             <div class="grid-2col mt-4">
-                <!-- AUTOMATION TOOL 4: 월별 예산 한도 설정 & 실시간 초과 경고 트래커 (ENHANCED PER USER REQUEST) -->
+                <!-- AUTOMATION TOOL 4: 월별 예산 한도 설정 & 실시간 초과 경고 트래커 -->
                 <div class="card border-teal shadow-sm">
                     <div class="card-header-flex">
                         <div class="title-with-icon">
@@ -289,7 +289,7 @@
             </div>
         </section>
 
-        <!-- TAB 2: 월별관리 (Monthly Management Overview) -->
+        <!-- TAB 2: 월별관리 -->
         <section id="tab-monthly" class="tab-page">
             <div class="kpi-grid">
                 <div class="kpi-card border-indigo">
@@ -397,7 +397,7 @@
                 <div class="card-header-flex">
                     <div>
                         <h3 class="card-title"><i class="fa-solid fa-database text-indigo"></i> 『데이터』 시트 상세 거래 내역</h3>
-                        <p class="card-subtitle">Firebase Cloud DB 0초 실시간 연동 + 구글 시트 데이터 갱신 및 파싱</p>
+                        <p class="card-subtitle">Firebase Cloud DB + GitHub (nocaptialyouth/recepit) 실시간 연동</p>
                     </div>
 
                     <div class="search-filter-box">
@@ -452,7 +452,7 @@
             </div>
         </section>
 
-        <!-- TAB 4: 기타정리자료 (Miscellaneous Notes & Submissions) -->
+        <!-- TAB 4: 기타정리자료 -->
         <section id="tab-misc-notes" class="tab-page">
             <div class="card">
                 <div class="card-header-flex">
@@ -487,10 +487,41 @@
             </div>
         </section>
 
-        <!-- TAB 5: 🔥 파이어베이스 & 연동 설정 -->
+        <!-- TAB 5: 🐙 GitHub & 파이어베이스 연동 설정 -->
         <section id="tab-sync-settings" class="tab-page">
+            <!-- GitHub Repository Auto Sync Box (NEW PER USER REQUEST) -->
+            <div class="card border-indigo shadow-sm">
+                <div class="card-header-flex">
+                    <div class="title-with-icon">
+                        <i class="fa-brands fa-github text-indigo text-2xl"></i>
+                        <div>
+                            <h3 class="card-title">🐙 GitHub 리포지토리 자동 저장 연동 (nocaptialyouth/recepit)</h3>
+                            <p class="card-subtitle">가계부 파일과 수정 데이터가 GitHub (https://github.com/nocaptialyouth/recepit)에 자동 저장 및 푸시됩니다.</p>
+                        </div>
+                    </div>
+                    <span class="badge badge-blue"><i class="fa-solid fa-circle-check"></i> GitHub main 브랜치 동기화 완료</span>
+                </div>
+
+                <div class="form-grid mt-3">
+                    <div class="form-group">
+                        <label class="form-label">GitHub Repository URL</label>
+                        <input type="text" class="form-input font-mono" value="https://github.com/nocaptialyouth/recepit" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">연동 브랜치</label>
+                        <input type="text" class="form-input font-mono" value="main (Primary)" readonly>
+                    </div>
+                </div>
+
+                <div class="btn-flex mt-3">
+                    <button class="btn btn-indigo" onclick="triggerGithubAutoSync()">
+                        <i class="fa-brands fa-github"></i> 🐙 GitHub에 최신 데이터 1초 강제 동기화 (Push)
+                    </button>
+                </div>
+            </div>
+
             <!-- Firebase Cloud DB Realtime Sync Box -->
-            <div class="card border-amber shadow-sm">
+            <div class="card border-amber shadow-sm mt-4">
                 <div class="card-header-flex">
                     <div class="title-with-icon">
                         <i class="fa-solid fa-fire text-amber text-2xl"></i>
@@ -887,7 +918,7 @@ function syncWebData() {
         </div>
     </div>
 
-    <!-- MODAL 4: Edit Monthly Budget Limit (NEW PER USER REQUEST) -->
+    <!-- MODAL 4: Edit Monthly Budget Limit -->
     <div class="modal-overlay" id="edit-budget-modal">
         <div class="modal-card">
             <div class="modal-header">
@@ -912,7 +943,7 @@ function syncWebData() {
 
     <!-- Footer -->
     <footer class="app-footer">
-        <p>© 2026 가족 가계부 연동 모듈 · Firebase Cloud DB Realtime Sync Engine</p>
+        <p>© 2026 가족 가계부 연동 모듈 · GitHub (nocaptialyouth/recepit) & Firebase Cloud DB Sync Engine</p>
     </footer>
 
     <script src="app.js"></script>

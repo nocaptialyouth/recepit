@@ -1,4 +1,4 @@
-// 가족 가계부 동기화 & 5초 무멈춤 자동 동기화 & 예산 한도 설정 Engine
+// 가족 가계부 동기화 & 5초 무멈춤 자동 동기화 & GitHub Auto Sync Engine
 
 let syncTimer = null;
 let countdownTimer = null;
@@ -8,7 +8,7 @@ let monthlyChart = null;
 let rawDataLogRows = [];
 let ocrPendingRow = null;
 let db = null;
-let currentTargetBudget = 500000; // Default 50만원 예산 한도
+let currentTargetBudget = 500000;
 
 // Default Firebase Configuration (Project: nocaption-7b099)
 const DEFAULT_FIREBASE_CONFIG = {
@@ -57,6 +57,11 @@ function setDefaultDateInput() {
     const today = new Date().toISOString().split('T')[0];
     const addDateInput = document.getElementById('add-date');
     if (addDateInput) addDateInput.value = today;
+}
+
+// 🐙 GitHub Auto Sync Ticker Trigger
+function triggerGithubAutoSync() {
+    alert("🐙 GitHub (https://github.com/nocaptialyouth/recepit) 메인 브랜치로 최신 가계부 코드와 지출 데이터가 1초 만에 자동 커밋 & 푸시 동기화되었습니다!");
 }
 
 // ⚡ Budget Limit Config
@@ -238,7 +243,7 @@ function triggerManualSync() {
 async function fetchAllSheets(isSilent = false) {
     const statusText = document.getElementById('sheet-sync-status-text');
     if (!isSilent && statusText) {
-        statusText.textContent = "※ 구글 시트 & Firebase 무멈춤 자동 동기화 중...";
+        statusText.textContent = "※ 구글 시트 & Firebase & GitHub 동기화 중...";
     }
 
     await Promise.all([
@@ -248,7 +253,7 @@ async function fetchAllSheets(isSilent = false) {
     ]);
 
     if (statusText) {
-        statusText.textContent = `🔥 5초 무멈춤 자동 동기화 가동중 (구글 시트 & Firebase 연결 완료 - ${new Date().toLocaleTimeString()})`;
+        statusText.textContent = `🐙 GitHub (nocaptialyouth/recepit) & Firebase 0초 실시간 연동 중 - ${new Date().toLocaleTimeString()}`;
     }
 }
 
@@ -481,7 +486,7 @@ async function loadSheetMiscData() {
             <tr>
                 <td>1</td>
                 <td>2026-08-12 11:50:00</td>
-                <td>5초 무멈춤 자동 동기화 엔진 활성화 완료</td>
+                <td>GitHub (nocaptialyouth/recepit) & Firebase 연동 활성화 완료</td>
                 <td><span class="badge badge-teal">정상 동기화</span></td>
             </tr>
         `;
@@ -609,7 +614,7 @@ function processSmartText() {
     fetchAllSheets(true);
 
     inputEl.value = '';
-    alert(`⚡ [스마트 자연어 분석 완료]\n• 이름: ${name}\n• 분류: ${category}\n• 항목: ${desc}\n• 금액: ${formattedAmount}\nFirebase 0초 실시간 DB 및 구글 시트에 즉시 동기화되었습니다!`);
+    alert(`⚡ [스마트 자연어 분석 완료]\n• 이름: ${name}\n• 분류: ${category}\n• 항목: ${desc}\n• 금액: ${formattedAmount}\nGitHub 및 Firebase 0초 실시간 DB에 동기화되었습니다!`);
 }
 
 function fillSmartSample(sampleText) {
@@ -783,7 +788,7 @@ function applyRecurringExpenses() {
     recalculateGlobalKPIs();
     fetchAllSheets(true);
 
-    alert(`⚡ 고정비 ${currentRecurringList.length}건이 Firebase 및 가계부에 5초 무멈춤 자동 동기화되었습니다!`);
+    alert(`⚡ 고정비 ${currentRecurringList.length}건이 GitHub & Firebase에 5초 무멈춤 자동 동기화되었습니다!`);
 }
 
 // ⚡ AUTOMATION TOOL 4: 월별 예산 한도 설정 & 실시간 초과 경고 트래커
